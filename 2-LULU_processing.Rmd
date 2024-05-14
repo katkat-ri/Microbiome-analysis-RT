@@ -1,0 +1,61 @@
+---
+title: "LULU_processing"
+author: "Jacob Agerbo Rasmussen"
+date: "6/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r LULU load dependencies}
+#### LULU PIPELINE ####
+#library(devtools)
+#install_github("tobiasgf/lulu")  
+
+library(lulu)
+## Import data
+otutab <- read.csv("ASVs_counts.tsv",sep='\t',header=TRUE,as.is=TRUE, row.names = 1)
+matchlist <- read.table("match_list.txt", header=FALSE,as.is=TRUE, stringsAsFactors=FALSE)
+tax <- read.csv("ASVs_taxonomy.tsv",sep='\t',header=TRUE,as.is=TRUE, row.names = 1)
+```
+
+```{r run LULU}
+curated_result <- lulu(otutab, matchlist)
+```
+
+```{r export LULU}
+### Compared output
+curated_result$curated_count
+
+percentage.removed <- round((as.numeric(length(rownames(otutab)))-curated_result$curated_count)/as.numeric(length(rownames(otutab)))*100,digits = 2)
+
+
+
+Curated <- curated_result$curated_table
+tax_curated <- tax[match(rownames(Curated),rownames(tax)),]
+identical(rownames(Curated),rownames(tax_curated))
+ASVs <- rownames(tax_curated)
+tax_curated <- cbind(ASVs, tax_curated)
+Curated <- cbind(ASVs, Curated)
+write.table(tax_curated, "Curated_Tax.csv", sep = ',', row.names = FALSE)                            
+write.table(Curated, "Curated_Table.csv", sep = ',', row.names = FALSE)                            
+                            
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
