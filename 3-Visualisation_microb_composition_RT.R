@@ -248,10 +248,10 @@ control_indices <- (ncol(curated_lulu_counts_df) - 3):ncol(curated_lulu_counts_d
 biological_counts <- curated_lulu_counts_df[, biological_indices]
 control_counts <- curated_lulu_counts_df[, control_indices]
 
-# Identify ASVs with zero counts in all control samples
+# Make a list of ASVs present in controls (Identify ASVs with zero counts in all control samples)
 control_zero_asvs <- rownames(control_counts)[rowSums(control_counts) != 0]
 
-# Identify ASVs with zero counts only in biological samples
+# Make a list of ASVs present in biological samples (Identify ASVs with zero counts in all biological samples)
 biological_zero_asvs <- rownames(biological_counts)[rowSums(biological_counts) != 0]
 
 
@@ -267,4 +267,50 @@ venn.plot <- venn.diagram(
   cat.pos = c(-20,52),  # Align category names at the same height
   filename = NULL
 )
+
+
+#------- Table S4 ------- #
+
+# Finding which ASVs are only present in controls 
+control_specific_ASVs <- setdiff(control_zero_asvs,biological_zero_asvs)
+
+# Finding taxa only present in controls
+control_specific_taxa <- curated_lulu_taxonomy_df[rownames(curated_lulu_taxonomy_df) %in% control_specific_ASVs, ]
+
+# Save in a .csv file
+write.csv(control_specific_taxa , file = "control_specific_taxa.csv")
+
+
+#------- Figure 5 ------- #
+
+control_specific_taxa <- control_specific_taxa %>%
+  group_by(Phylum, Genus) %>%
+  summarise(ASV_Count = n(), .groups = 'drop')
+
+# Summarize ASV_Count by Phylum
+phylum_order <- control_specific_taxa %>%
+  group_by(Phylum) %>%
+  summarise(total_ASV_Count = sum(ASV_Count)) %>%
+  arrange(total_ASV_Count) %>%
+  pull(Phylum)
+
+# Reorder Phylum in the original dataframe
+control_specific_taxa$Phylum <- factor(control_specific_taxa$Phylum, levels = phylum_order)
+
+# Make a palette
+fig5_palette <- c("orange", "blue", "#FCE205", "green", "black", "red", "green4", "brown", "blue4", "purple3")
+
+# Plot the data
+ggplot(control_specific_taxa, aes(x = ASV_Count, y = reorder(Phylum, ASV_Count), fill = Genus)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  scale_fill_manual(values = fig5_palette) +
+  labs(
+    x = "",
+    y = "") +
+  theme(
+    axis.text = element_text(size = 10),
+    legend.text = element_text(size = 8)
+  )
+
 
